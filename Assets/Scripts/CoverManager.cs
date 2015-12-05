@@ -22,6 +22,8 @@ public class CoverManager : View, ICoverManager
 
     private List<GameObject> covers = new List<GameObject>();
 
+    private Dictionary<BoardPosition, GameObject> coverBoardPositions = new Dictionary<BoardPosition, GameObject>();
+
     // Use this for initialization
     protected override void Start()
     {
@@ -34,6 +36,7 @@ public class CoverManager : View, ICoverManager
             covers.Add(cover);
         }
         EventManager.AddListener<GameModeChangedEvent>(HandleGameModeChanged);
+        EventManager.AddListener<UnitBattleResultEvent>(HandleUnitBattleResult);
     }
 
     private void HandleGameModeChanged(GameModeChangedEvent e)
@@ -61,6 +64,7 @@ public class CoverManager : View, ICoverManager
         {
             GameManager.PlayerOne.Holder.SetActive(true);
             GameManager.PlayerTwo.Holder.SetActive(true);
+            ClearMask();
             MaskPlayer(GameManager.PlayerOne);
             MaskPlayer(GameManager.PlayerTwo);
         }
@@ -68,6 +72,7 @@ public class CoverManager : View, ICoverManager
 
     private void ClearMask()
     {
+        coverBoardPositions.Clear();
         foreach (GameObject cover in covers)
         {
             cover.SetActive(false);
@@ -90,7 +95,7 @@ public class CoverManager : View, ICoverManager
                 for (int j = i + 1; j < covers.Count; j++)
                 {
                     cover = covers[j];
-                    if(!cover.activeInHierarchy)
+                    if (!cover.activeInHierarchy)
                     {
                         break;
                     }
@@ -98,6 +103,21 @@ public class CoverManager : View, ICoverManager
             }
             cover.transform.position = coverPosition;
             cover.SetActive(true);
+            coverBoardPositions.Add(boardPosition, cover);
+        }
+    }
+
+    private void HandleUnitBattleResult(UnitBattleResultEvent e)
+    {
+        if (e.Result.Equals(BattleResult.Success) || e.Result.Equals(BattleResult.Split))
+        {
+            // get position of defender and disable cover
+            GameObject cover;
+            if (coverBoardPositions.TryGetValue(e.DefenderPosition, out cover))
+            {
+                cover.SetActive(false);
+                coverBoardPositions.Remove(e.DefenderPosition);
+            }
         }
     }
 }

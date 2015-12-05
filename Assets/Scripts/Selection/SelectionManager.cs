@@ -9,6 +9,9 @@ public class SelectionManager : View, ISelectionManager
     public IEventManager EventManager { get; set; }
 
     [Inject]
+    public IGameManager GameManager { get; set; }
+
+    [Inject]
     public IBoardManager BoardManager { get; set; }
 
     [Inject]
@@ -28,7 +31,7 @@ public class SelectionManager : View, ISelectionManager
 
     private UnitRank placementRank = UnitRank.Unknown;
 
-    private BoardPosition previous;
+    private BoardPosition previous = BoardPosition.OFF_BOARD;
 
     private GameObject highlightCube;
 
@@ -44,7 +47,7 @@ public class SelectionManager : View, ISelectionManager
         highlightCube.transform.SetParent(CubeParent);
         hoverCube = Instantiate(HoverCubePrefab);
         hoverCube.transform.SetParent(CubeParent);
-        for(int i = 0; i < validCubes.Length; i++)
+        for (int i = 0; i < validCubes.Length; i++)
         {
             validCubes[i] = Instantiate(ValidCubePrefab);
             validCubes[i].transform.SetParent(CubeParent);
@@ -52,6 +55,7 @@ public class SelectionManager : View, ISelectionManager
 
         EventManager.AddListener<UnitPlacementSelectedEvent>(HandleUnitPlacementSelected);
         EventManager.AddListener<UnitPlacedEvent>(HandleUnitPlaced);
+        EventManager.AddListener<GameModeChangedEvent>(HandleGameModeChanged);
     }
 
     // Update is called once per frame
@@ -60,7 +64,6 @@ public class SelectionManager : View, ISelectionManager
         RaycastHit[] hits = Physics.RaycastAll(mainCamera.ScreenPointToRay(Input.mousePosition), 50, mask);
 
         bool selectable = false;
-        bool piece = false;
         BoardPosition position = BoardPosition.OFF_BOARD;
         UnitPiece unit = UnitPiece.UNKNOWN;
         Vector3 tileVector = Vector3.zero;
@@ -95,20 +98,32 @@ public class SelectionManager : View, ISelectionManager
             {
                 if (hit.transform.gameObject.layer == LayerMask.NameToLayer("Pieces"))
                 {
-                    piece = true;
                     unit = UnitManager.GetUnitPieceForPosition(position);
                     break;
                 }
             }
         }
 
+        //Handle input based on game mode
+        if (GameManager.CurrentMode.Equals(GameMode.PlayerOneSetup) || GameManager.CurrentMode.Equals(GameMode.PlayerTwoSetup))
+        {
+            HandleSetup(hits, selectable, position, unit, tileVector);
+        }
+        if (GameManager.CurrentMode.Equals(GameMode.PlayerOne) || GameManager.CurrentMode.Equals(GameMode.PlayerTwo))
+        {
+            HandleGame(hits, selectable, position, unit, tileVector);
+        }
+    }
+
+    private void HandleSetup(RaycastHit[] hits, bool selectable, BoardPosition position, UnitPiece unit, Vector3 tileVector)
+    {
         //Handle mouse click
         if (Input.GetMouseButtonDown(0))
         {
             if (hits.Length == 0)
             {
                 highlightCube.SetActive(false);
-                EventManager.Raise(new BoardPositionSelectedEvent(BoardPosition.OFF_BOARD));
+                EventManager.Raise(new BoardPositionSelectedEvent(position));
             }
             else if (selectable && !placementRank.Equals(UnitRank.Unknown))
             {
@@ -116,7 +131,7 @@ public class SelectionManager : View, ISelectionManager
             }
             else if (selectable && placementRank.Equals(UnitRank.Unknown))
             {
-                if (piece)
+                if (!unit.Rank.Equals(UnitRank.Unknown))
                 {
                     MoveHighlight(tileVector);
                     EventManager.Raise(new UnitSelectedEvent(unit));
@@ -126,20 +141,84 @@ public class SelectionManager : View, ISelectionManager
                     EventManager.Raise(new BoardPositionSelectedEvent(position));
                 }
             }
-
-            // Keep track of previously selected position
-            if (hits.Length == 0 || selectable)
-            {
-                previous = position;
-            }
         }
         else if (Input.GetMouseButtonDown(1))
         {
             //Remove existing piece
-            if(piece)
+            if (!unit.Rank.Equals(UnitRank.Unknown))
             {
                 UnitManager.RemovePiece(position);
             }
+        }
+    }
+
+    private void HandleGame(RaycastHit[] hits, bool selectable, BoardPosition position, UnitPiece unit, Vector3 tileVector)
+    {
+        if (Input.GetMouseButtonDown(0))
+        {
+            if (hits.Length == 0)
+            {
+                highlightCube.SetActive(false);
+                previous = position;
+                EventManager.Raise(new BoardPositionSelectedEvent(position));
+            }
+            else if (selectable && !unit.Equals(UnitPiece.UNKNOWN))
+            {
+                //We've selected a unit
+                //Check if we're the owner
+                bool owner = false;
+                if (GameManager.CurrentMode.Equals(GameMode.PlayerOne))
+                {
+                    owner = unit.Owner.Equals(GameManager.PlayerOne);
+                }
+                else if (GameManager.CurrentMode.Equals(GameMode.PlayerTwo))
+                {
+                    owner = unit.Owner.Equals(GameManager.PlayerTwo);
+                }
+
+                if (owner)
+                {
+                    //If the previous position was off the board, this is our first selection
+                    if (previous.Equals(BoardPosition.OFF_BOARD))
+                    {
+                        previous = position;
+                        MoveHighlight(tileVector);
+                    }
+                }
+                else
+                {
+                    //If our previous position contains a piece that we own, then we should do battle
+                    UnitPiece previousPiece = UnitManager.GetUnitPieceForPosition(previous);
+                    if (!previousPiece.Equals(UnitPiece.UNKNOWN))
+                    {
+                        bool previousOwner = false;
+                        if (GameManager.CurrentMode.Equals(GameMode.PlayerOne))
+                        {
+                            previousOwner = previousPiece.Owner.Equals(GameManager.PlayerOne);
+                        }
+                        else if (GameManager.CurrentMode.Equals(GameMode.PlayerTwo))
+                        {
+                            previousOwner = previousPiece.Owner.Equals(GameManager.PlayerTwo);
+                        }
+
+                        if (previousOwner)
+                        {
+                            // instigate attack, with previous piece as attacker and current piece as defender
+                            GameManager.HandleBattle(previousPiece, previous, unit, position);
+                            previous = BoardPosition.OFF_BOARD;
+                            highlightCube.SetActive(false);
+                        }
+                    }
+                }
+            }
+            else if (selectable && !position.Equals(BoardPosition.OFF_BOARD) && !previous.Equals(BoardPosition.OFF_BOARD))
+            {
+                //We've selected a place not off the board, the previous position was not off the board either, but there is no piece occupying the space
+            }
+        }
+        else if (Input.GetMouseButtonDown(1))
+        {
+
         }
     }
 
@@ -170,6 +249,15 @@ public class SelectionManager : View, ISelectionManager
         if (UnitManager.GetPlacementAmountForUnit(placementRank) <= 0)
         {
             placementRank = UnitRank.Unknown;
+        }
+    }
+
+    private void HandleGameModeChanged(GameModeChangedEvent e)
+    {
+        if (e.Current.Equals(GameMode.PlayerTransition))
+        {
+            highlightCube.SetActive(false);
+            previous = BoardPosition.OFF_BOARD;
         }
     }
 }

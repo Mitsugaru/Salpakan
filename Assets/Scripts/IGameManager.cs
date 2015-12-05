@@ -9,4 +9,6 @@ public interface IGameManager {
     PlayerInfo PlayerTwo { get; }
 
     void ChangeMode(GameMode mode);
+
+    void HandleBattle(UnitPiece attacker, BoardPosition attackerPosition, UnitPiece defender, BoardPosition defenderPosition);
 }

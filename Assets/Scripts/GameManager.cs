@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using strange.extensions.mediation.impl;
+using System;
 
 public class GameManager : View, IGameManager
 {
@@ -100,5 +101,38 @@ public class GameManager : View, IGameManager
         {
             PlayerTwo.Pieces.Remove(e.Unit);
         }
+    }
+
+    public void HandleBattle(UnitPiece attacker, BoardPosition attackerPosition, UnitPiece defender, BoardPosition defenderPosition)
+    {
+        BattleResult result = UnitUtilities.ResolveBattle(attacker.Rank, defender.Rank);
+        // Based on result, update players
+        switch (result)
+        {
+            case BattleResult.Success:
+                {
+                    // Remove from defender owner
+                    defender.Owner.Pieces.Remove(defender);
+                    break;
+                }
+            case BattleResult.Fail:
+                {
+                    // Remove from attacker owner
+                    attacker.Owner.Pieces.Remove(attacker);
+                    break;
+                }
+            case BattleResult.Split:
+                {
+                    //Remove both
+                    attacker.Owner.Pieces.Remove(attacker);
+                    defender.Owner.Pieces.Remove(defender);
+                    break;
+                }
+            default:
+                {
+                    break;
+                }
+        }
+        EventManager.Raise(new UnitBattleResultEvent(attacker, defender, attackerPosition, defenderPosition, result));
     }
 }

@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
 using System;
 using System.Collections;
 
@@ -10,6 +11,10 @@ public class ContinueScript : MonoBehaviour
 
     [Inject]
     public IUnitManager UnitManager { get; set; }
+
+    public GameObject TransitionPanel;
+
+    public Text TransitionText;
 
     private GameMode previous;
 
@@ -31,7 +36,6 @@ public class ContinueScript : MonoBehaviour
                     }
                     if (!remaining)
                     {
-                        Debug.Log("moving to player two setup");
                         GameManager.ChangeMode(GameMode.PlayerTwoSetup);
                     }
                     break;
@@ -50,6 +54,8 @@ public class ContinueScript : MonoBehaviour
                     if (!remaining)
                     {
                         previous = GameMode.PlayerTwo;
+                        TransitionPanel.SetActive(true);
+                        TransitionText.text = GameManager.PlayerOne.Name + "'s" + System.Environment.NewLine + "turn";
                         GameManager.ChangeMode(GameMode.PlayerTransition);
                     }
                     break;
@@ -59,6 +65,8 @@ public class ContinueScript : MonoBehaviour
                     //TODO verify that they've completed their turn
                     //TODO check win condition
                     previous = GameMode.PlayerOne;
+                    TransitionPanel.SetActive(true);
+                    TransitionText.text = GameManager.PlayerTwo.Name + "'s" + System.Environment.NewLine + "turn";
                     GameManager.ChangeMode(GameMode.PlayerTransition);
                     break;
                 }
@@ -67,6 +75,8 @@ public class ContinueScript : MonoBehaviour
                     //TODO verify that they've completed their turn
                     //TODO check win condition
                     previous = GameMode.PlayerTwo;
+                    TransitionPanel.SetActive(true);
+                    TransitionText.text = GameManager.PlayerOne.Name + "'s" + System.Environment.NewLine + "turn";
                     GameManager.ChangeMode(GameMode.PlayerTransition);
                     break;
                 }
@@ -80,6 +90,7 @@ public class ContinueScript : MonoBehaviour
                     {
                         GameManager.ChangeMode(GameMode.PlayerOne);
                     }
+                    TransitionPanel.SetActive(false);
                     break;
                 }
             default:

@@ -32,6 +32,8 @@ public class UnitManager : View, IUnitManager
         base.Start();
 
         SetupPlacementValues();
+
+        EventManager.AddListener<UnitBattleResultEvent>(HandleUnitBattleResult);
     }
 
     public void AddPiece(BoardPosition position, UnitRank rank)
@@ -68,7 +70,7 @@ public class UnitManager : View, IUnitManager
                     piece.Piece.transform.SetParent(piece.Owner.Holder.transform);
                     plane.name = UnitUtilities.ReadableRank(rank);
                     plane.layer = LayerMask.NameToLayer("Pieces");
-                    Vector3 planePos = BoardManager.GetTransformForPosition(position).position;
+                    Vector3 planePos = target.position;
                     planePos.z = GOLayer.UNIT_LAYER;
                     plane.transform.position = planePos;
                     Renderer r = plane.GetComponent<Renderer>();
@@ -85,20 +87,31 @@ public class UnitManager : View, IUnitManager
         }
     }
 
-    private UnitPiece GeneratePiece(UnitRank rank, GameObject plane)
+    public bool MovePiece(BoardPosition current, BoardPosition future)
     {
-        UnitPiece piece = new UnitPiece(rank, plane);
-        if (GameManager.CurrentMode == GameMode.PlayerOneSetup)
+        bool moved = false;
+
+        if (!pieces.ContainsKey(future))
         {
-            piece.Owner = GameManager.PlayerOne;
-            playerOnePlacementUnits[rank] -= 1;
+            UnitPiece existing;
+            if (pieces.TryGetValue(current, out existing))
+            {
+                pieces.Remove(current);
+                pieces.Add(future, existing);
+
+                Transform target = BoardManager.GetTransformForPosition(future);
+                if (!EqualityComparer<Transform>.Default.Equals(target, default(Transform)))
+                {
+                    Vector3 planePos = target.position;
+                    planePos.z = GOLayer.UNIT_LAYER;
+                    existing.Piece.transform.position = planePos;
+                }
+
+                EventManager.Raise(new UnitMovedEvent(current, future, existing));
+            }
         }
-        else if (GameManager.CurrentMode == GameMode.PlayerTwoSetup)
-        {
-            piece.Owner = GameManager.PlayerTwo;
-            playerTwoPlacementUnits[rank] -= 1;
-        }
-        return piece;
+
+        return moved;
     }
 
     public void RemovePiece(BoardPosition position)
@@ -136,9 +149,9 @@ public class UnitManager : View, IUnitManager
     {
         BoardPosition position = BoardPosition.OFF_BOARD;
 
-        foreach(KeyValuePair<BoardPosition, UnitPiece> pair in pieces)
+        foreach (KeyValuePair<BoardPosition, UnitPiece> pair in pieces)
         {
-            if(pair.Value.Equals(piece))
+            if (pair.Value.Equals(piece))
             {
                 position = pair.Key;
                 break;
@@ -160,6 +173,22 @@ public class UnitManager : View, IUnitManager
             playerTwoPlacementUnits.TryGetValue(rank, out amount);
         }
         return amount;
+    }
+
+    private UnitPiece GeneratePiece(UnitRank rank, GameObject plane)
+    {
+        UnitPiece piece = new UnitPiece(rank, plane);
+        if (GameManager.CurrentMode == GameMode.PlayerOneSetup)
+        {
+            piece.Owner = GameManager.PlayerOne;
+            playerOnePlacementUnits[rank] -= 1;
+        }
+        else if (GameManager.CurrentMode == GameMode.PlayerTwoSetup)
+        {
+            piece.Owner = GameManager.PlayerTwo;
+            playerTwoPlacementUnits[rank] -= 1;
+        }
+        return piece;
     }
 
     private void SetupPlacementValues()
@@ -194,6 +223,37 @@ public class UnitManager : View, IUnitManager
                 playerOnePlacementUnits.Add(rank, amount);
                 playerTwoPlacementUnits.Add(rank, amount);
             }
+        }
+    }
+
+    private void HandleUnitBattleResult(UnitBattleResultEvent e)
+    {
+        switch (e.Result)
+        {
+            case BattleResult.Success:
+                {
+                    //Move attacker to defender's position
+                    RemovePiece(e.DefenderPosition);
+                    MovePiece(e.AttackerPosition, e.DefenderPosition);
+                    break;
+                }
+            case BattleResult.Fail:
+                {
+                    //Remove attacker
+                    RemovePiece(e.AttackerPosition);
+                    break;
+                }
+            case BattleResult.Split:
+                {
+                    //Remove both attacker and defender
+                    RemovePiece(e.AttackerPosition);
+                    RemovePiece(e.DefenderPosition);
+                    break;
+                }
+            default:
+                {
+                    break;
+                }
         }
     }
 }
