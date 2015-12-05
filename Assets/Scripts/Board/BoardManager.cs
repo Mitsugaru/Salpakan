@@ -112,4 +112,9 @@ public class BoardManager : View, IBoardManager
         }
         return selectable;
     }
+
+    public bool PositionExists(BoardPosition position)
+    {
+        return board.ContainsKey(position);
+    }
 }

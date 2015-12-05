@@ -39,6 +39,8 @@ public class SelectionManager : View, ISelectionManager
 
     private GameObject[] validCubes = new GameObject[4];
 
+    private List<BoardPosition> validPositions = new List<BoardPosition>();
+
     private bool action = false;
 
     protected override void Start()
@@ -126,23 +128,10 @@ public class SelectionManager : View, ISelectionManager
             if (hits.Length == 0)
             {
                 highlightCube.SetActive(false);
-                EventManager.Raise(new BoardPositionSelectedEvent(position));
             }
             else if (selectable && !placementRank.Equals(UnitRank.Unknown))
             {
                 UnitManager.AddPiece(position, placementRank);
-            }
-            else if (selectable && placementRank.Equals(UnitRank.Unknown))
-            {
-                if (!unit.Rank.Equals(UnitRank.Unknown))
-                {
-                    MoveHighlight(tileVector);
-                    EventManager.Raise(new UnitSelectedEvent(unit));
-                }
-                else
-                {
-                    EventManager.Raise(new BoardPositionSelectedEvent(position));
-                }
             }
         }
         else if (Input.GetMouseButtonDown(1))
@@ -163,7 +152,6 @@ public class SelectionManager : View, ISelectionManager
             {
                 highlightCube.SetActive(false);
                 previous = position;
-                EventManager.Raise(new BoardPositionSelectedEvent(position));
             }
             else if (selectable && !unit.Equals(UnitPiece.UNKNOWN))
             {
@@ -186,9 +174,26 @@ public class SelectionManager : View, ISelectionManager
                     {
                         previous = position;
                         MoveHighlight(tileVector);
+
+                        //Determine what the valid next positions are
+                        ClearValid();
+                        //Add current position, for deselection
+                        validPositions.Add(position);
+                        ValidateNextPosition(new BoardPosition(position.X - 1, position.Y));
+                        ValidateNextPosition(new BoardPosition(position.X, position.Y - 1));
+                        ValidateNextPosition(new BoardPosition(position.X + 1, position.Y));
+                        ValidateNextPosition(new BoardPosition(position.X, position.Y + 1));
+                        MoveValid();
+                    }
+                    else if (previous.Equals(position))
+                    {
+                        //We selected the same space, deselect
+                        previous = BoardPosition.OFF_BOARD;
+                        highlightCube.SetActive(false);
+                        ClearValid();
                     }
                 }
-                else
+                else if (validPositions.Contains(position))
                 {
                     //If our previous position contains a piece that we own, then we should do battle
                     UnitPiece previousPiece = UnitManager.GetUnitPieceForPosition(previous);
@@ -210,6 +215,7 @@ public class SelectionManager : View, ISelectionManager
                             GameManager.HandleBattle(previousPiece, previous, unit, position);
                             previous = BoardPosition.OFF_BOARD;
                             highlightCube.SetActive(false);
+                            ClearValid();
                         }
                     }
                 }
@@ -217,11 +223,22 @@ public class SelectionManager : View, ISelectionManager
             else if (selectable && !position.Equals(BoardPosition.OFF_BOARD) && !previous.Equals(BoardPosition.OFF_BOARD))
             {
                 //We've selected a place not off the board, the previous position was not off the board either, but there is no piece occupying the space
+                if(validPositions.Contains(position))
+                {
+                    //Move the piece
+                    UnitManager.MovePiece(previous, position);
+                    ClearValid();
+                    highlightCube.SetActive(false);
+                    action = true;
+                }
             }
         }
         else if (Input.GetMouseButtonDown(1))
         {
-
+            //Just clear selection
+            previous = BoardPosition.OFF_BOARD;
+            highlightCube.SetActive(false);
+            ClearValid();
         }
     }
 
@@ -239,6 +256,67 @@ public class SelectionManager : View, ISelectionManager
         vec.z = GOLayer.HOVER_LAYER;
         hoverCube.transform.position = vec;
         hoverCube.SetActive(true);
+    }
+
+    private void MoveValid()
+    {
+        for (int i = 1; i < validPositions.Count; i++)
+        {
+            Transform target = BoardManager.GetTransformForPosition(validPositions[i]);
+            if (!EqualityComparer<Transform>.Default.Equals(target, default(Transform)))
+            {
+                GameObject v = validCubes[i - 1];
+                Vector3 vec = target.position;
+                vec.z = GOLayer.HIGHLIGHT_LAYER;
+                v.transform.position = vec;
+                v.SetActive(true);
+            }
+        }
+    }
+
+    private void ClearValid()
+    {
+        validPositions.Clear();
+        foreach (GameObject v in validCubes)
+        {
+            v.SetActive(false);
+        }
+    }
+
+    private void ValidateNextPosition(BoardPosition position)
+    {
+        bool add = false;
+        bool exists = BoardManager.PositionExists(position);
+        if (exists)
+        {
+            UnitPiece existing = UnitManager.GetUnitPieceForPosition(position);
+            if (!existing.Equals(UnitPiece.UNKNOWN))
+            {
+                bool owner = false;
+                if (GameManager.CurrentMode.Equals(GameMode.PlayerOne))
+                {
+                    owner = existing.Owner.Equals(GameManager.PlayerOne);
+                }
+                else if (GameManager.CurrentMode.Equals(GameMode.PlayerTwo))
+                {
+                    owner = existing.Owner.Equals(GameManager.PlayerTwo);
+                }
+                if (!owner)
+                {
+                    //We're not the owner
+                    add = true;
+                }
+            }
+            else
+            {
+                // Unoccupied space
+                add = true;
+            }
+        }
+        if (add)
+        {
+            validPositions.Add(position);
+        }
     }
 
     private void HandleUnitPlacementSelected(UnitPlacementSelectedEvent e)
@@ -267,6 +345,7 @@ public class SelectionManager : View, ISelectionManager
             highlightCube.SetActive(false);
             previous = BoardPosition.OFF_BOARD;
             action = false;
+            ClearValid();
         }
     }
 }

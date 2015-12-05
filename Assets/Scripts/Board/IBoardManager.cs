@@ -8,4 +8,6 @@ public interface IBoardManager {
     BoardPosition GetPositionForGO(GameObject go);
 
     bool PositionIsSelectable(BoardPosition position);
+
+    bool PositionExists(BoardPosition position);
 }
