@@ -11,6 +11,8 @@ public class ContinueScript : MonoBehaviour
     [Inject]
     public IUnitManager UnitManager { get; set; }
 
+    private GameMode previous;
+
     // Update is called once per frame
     public void ContinueClicked()
     {
@@ -47,7 +49,8 @@ public class ContinueScript : MonoBehaviour
                     }
                     if (!remaining)
                     {
-                        GameManager.ChangeMode(GameMode.PlayerOne);
+                        previous = GameMode.PlayerTwo;
+                        GameManager.ChangeMode(GameMode.PlayerTransition);
                     }
                     break;
                 }
@@ -55,14 +58,28 @@ public class ContinueScript : MonoBehaviour
                 {
                     //TODO verify that they've completed their turn
                     //TODO check win condition
-                    GameManager.ChangeMode(GameMode.PlayerTwo);
+                    previous = GameMode.PlayerOne;
+                    GameManager.ChangeMode(GameMode.PlayerTransition);
                     break;
                 }
             case GameMode.PlayerTwo:
                 {
                     //TODO verify that they've completed their turn
                     //TODO check win condition
-                    GameManager.ChangeMode(GameMode.PlayerOne);
+                    previous = GameMode.PlayerTwo;
+                    GameManager.ChangeMode(GameMode.PlayerTransition);
+                    break;
+                }
+            case GameMode.PlayerTransition:
+                {
+                    if (previous.Equals(GameMode.PlayerOne))
+                    {
+                        GameManager.ChangeMode(GameMode.PlayerTwo);
+                    }
+                    else if (previous.Equals(GameMode.PlayerTwo))
+                    {
+                        GameManager.ChangeMode(GameMode.PlayerOne);
+                    }
                     break;
                 }
             default:

@@ -6,5 +6,6 @@ public enum GameMode {
     PlayerOneSetup,
     PlayerTwoSetup,
     PlayerOne,
-    PlayerTwo
+    PlayerTwo,
+    PlayerTransition
 }

@@ -106,7 +106,7 @@ public class UnitManager : View, IUnitManager
         UnitPiece piece;
         if (pieces.TryGetValue(position, out piece))
         {
-            bool result = pieces.Remove(position);
+            pieces.Remove(position);
             if (GameManager.CurrentMode == GameMode.PlayerOneSetup)
             {
                 playerOnePlacementUnits[piece.Rank] += 1;

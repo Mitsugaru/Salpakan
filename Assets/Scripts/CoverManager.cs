@@ -26,7 +26,7 @@ public class CoverManager : View, ICoverManager
     protected override void Start()
     {
         //Initialize with max number of units for a given side
-        for(int i = 0; i < 21; i++)
+        for (int i = 0; i < 42; i++)
         {
             GameObject cover = Instantiate(CoverPanePrefab);
             cover.transform.SetParent(CoverParent);
@@ -39,19 +39,36 @@ public class CoverManager : View, ICoverManager
     private void HandleGameModeChanged(GameModeChangedEvent e)
     {
         ClearMask();
-        if (e.Current.Equals(GameMode.PlayerOne) || e.Current.Equals(GameMode.PlayerOneSetup))
+        if (e.Current.Equals(GameMode.PlayerOneSetup))
+        {
+            GameManager.PlayerOne.Holder.SetActive(true);
+            GameManager.PlayerTwo.Holder.SetActive(false);
+        }
+        else if (e.Current.Equals(GameMode.PlayerTwoSetup))
+        {
+            GameManager.PlayerOne.Holder.SetActive(false);
+            GameManager.PlayerTwo.Holder.SetActive(true);
+        }
+        else if (e.Current.Equals(GameMode.PlayerOne))
         {
             MaskPlayer(GameManager.PlayerTwo);
         }
-        else if (e.Current.Equals(GameMode.PlayerTwo) || e.Current.Equals(GameMode.PlayerTwoSetup))
+        else if (e.Current.Equals(GameMode.PlayerTwo))
         {
             MaskPlayer(GameManager.PlayerOne);
+        }
+        else if (e.Current.Equals(GameMode.PlayerTransition))
+        {
+            GameManager.PlayerOne.Holder.SetActive(true);
+            GameManager.PlayerTwo.Holder.SetActive(true);
+            MaskPlayer(GameManager.PlayerOne);
+            MaskPlayer(GameManager.PlayerTwo);
         }
     }
 
     private void ClearMask()
     {
-        foreach(GameObject cover in covers)
+        foreach (GameObject cover in covers)
         {
             cover.SetActive(false);
         }
@@ -61,13 +78,24 @@ public class CoverManager : View, ICoverManager
     {
         UnitPiece[] pieces = new UnitPiece[player.Pieces.Count];
         player.Pieces.CopyTo(pieces, 0);
-        for(int i = 0; i < pieces.Length; i++)
+        for (int i = 0; i < pieces.Length; i++)
         {
             BoardPosition boardPosition = UnitManager.GetPositionForUnitPiece(pieces[i]);
             Transform transform = BoardManager.GetTransformForPosition(boardPosition);
             Vector3 coverPosition = transform.position;
             coverPosition.z = GOLayer.COVER_LAYER;
             GameObject cover = covers[i];
+            if (cover.activeInHierarchy)
+            {
+                for (int j = i + 1; j < covers.Count; j++)
+                {
+                    cover = covers[j];
+                    if(!cover.activeInHierarchy)
+                    {
+                        break;
+                    }
+                }
+            }
             cover.transform.position = coverPosition;
             cover.SetActive(true);
         }
