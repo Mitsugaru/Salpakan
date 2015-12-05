@@ -39,6 +39,8 @@ public class SelectionManager : View, ISelectionManager
 
     private GameObject[] validCubes = new GameObject[4];
 
+    private bool action = false;
+
     protected override void Start()
     {
         base.Start();
@@ -55,6 +57,7 @@ public class SelectionManager : View, ISelectionManager
 
         EventManager.AddListener<UnitPlacementSelectedEvent>(HandleUnitPlacementSelected);
         EventManager.AddListener<UnitPlacedEvent>(HandleUnitPlaced);
+        EventManager.AddListener<UnitBattleResultEvent>(HandleUnitBattleResult);
         EventManager.AddListener<GameModeChangedEvent>(HandleGameModeChanged);
     }
 
@@ -82,7 +85,7 @@ public class SelectionManager : View, ISelectionManager
                     position = BoardManager.GetPositionForGO(hit.transform.gameObject);
                     selectable = BoardManager.PositionIsSelectable(position);
                     tileVector = hit.transform.position;
-                    if (selectable)
+                    if (selectable && !action)
                     {
                         MoveHover(hit.transform.position);
                     }
@@ -109,7 +112,7 @@ public class SelectionManager : View, ISelectionManager
         {
             HandleSetup(hits, selectable, position, unit, tileVector);
         }
-        if (GameManager.CurrentMode.Equals(GameMode.PlayerOne) || GameManager.CurrentMode.Equals(GameMode.PlayerTwo))
+        if (!action && (GameManager.CurrentMode.Equals(GameMode.PlayerOne) || GameManager.CurrentMode.Equals(GameMode.PlayerTwo)))
         {
             HandleGame(hits, selectable, position, unit, tileVector);
         }
@@ -252,12 +255,18 @@ public class SelectionManager : View, ISelectionManager
         }
     }
 
+    private void HandleUnitBattleResult(UnitBattleResultEvent e)
+    {
+        action = true;
+    }
+
     private void HandleGameModeChanged(GameModeChangedEvent e)
     {
         if (e.Current.Equals(GameMode.PlayerTransition))
         {
             highlightCube.SetActive(false);
             previous = BoardPosition.OFF_BOARD;
+            action = false;
         }
     }
 }
