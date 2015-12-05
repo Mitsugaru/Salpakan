@@ -1296,6 +1296,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cb82ec10938b8e04e9104f34fd235474, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  UI: {fileID: 941317487}
   ContentPanel: {fileID: 1475725646}
   MenuItem: {fileID: 174814, guid: 6918c3bd08710574f88f293e019387e6, type: 2}
 --- !u!114 &1672852531
