@@ -47,6 +47,9 @@ public class RootContext : MVCSContext, IRootContext
         SelectionManager selectionManager = managers.GetComponent<SelectionManager>();
         injectionBinder.Bind<ISelectionManager>().ToValue(selectionManager).ToSingleton();
 
+        CoverManager coverManager = managers.GetComponent<CoverManager>();
+        injectionBinder.Bind<ICoverManager>().ToValue(coverManager).ToSingleton();
+
         UnitMenuManager unitMenuManager = ui.GetComponent<UnitMenuManager>();
         Inject(unitMenuManager);
 

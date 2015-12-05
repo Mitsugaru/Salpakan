@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 using strange.extensions.mediation.impl;
 
 public class SelectionManager : View, ISelectionManager
@@ -15,9 +16,13 @@ public class SelectionManager : View, ISelectionManager
 
     public Camera mainCamera;
 
-    public GameObject HighlightCube;
+    public GameObject HighlightCubePrefab;
 
-    public GameObject HoverCube;
+    public GameObject HoverCubePrefab;
+
+    public GameObject ValidCubePrefab;
+
+    public Transform CubeParent;
 
     public LayerMask mask;
 
@@ -25,9 +30,25 @@ public class SelectionManager : View, ISelectionManager
 
     private BoardPosition previous;
 
+    private GameObject highlightCube;
+
+    private GameObject hoverCube;
+
+    private GameObject[] validCubes = new GameObject[4];
+
     protected override void Start()
     {
         base.Start();
+
+        highlightCube = Instantiate(HighlightCubePrefab);
+        highlightCube.transform.SetParent(CubeParent);
+        hoverCube = Instantiate(HoverCubePrefab);
+        hoverCube.transform.SetParent(CubeParent);
+        for(int i = 0; i < validCubes.Length; i++)
+        {
+            validCubes[i] = Instantiate(ValidCubePrefab);
+            validCubes[i].transform.SetParent(CubeParent);
+        }
 
         EventManager.AddListener<UnitPlacementSelectedEvent>(HandleUnitPlacementSelected);
         EventManager.AddListener<UnitPlacedEvent>(HandleUnitPlaced);
@@ -46,7 +67,7 @@ public class SelectionManager : View, ISelectionManager
 
         if (hits.Length == 0)
         {
-            HoverCube.SetActive(false);
+            hoverCube.SetActive(false);
         }
         else
         {
@@ -64,7 +85,7 @@ public class SelectionManager : View, ISelectionManager
                     }
                     else
                     {
-                        HoverCube.SetActive(false);
+                        hoverCube.SetActive(false);
                     }
                     break;
                 }
@@ -76,7 +97,6 @@ public class SelectionManager : View, ISelectionManager
                 {
                     piece = true;
                     unit = UnitManager.GetUnitPieceForPosition(position);
-                    EventManager.Raise(new UnitSelectedEvent(unit));
                     break;
                 }
             }
@@ -87,7 +107,7 @@ public class SelectionManager : View, ISelectionManager
         {
             if (hits.Length == 0)
             {
-                HighlightCube.SetActive(false);
+                highlightCube.SetActive(false);
                 EventManager.Raise(new BoardPositionSelectedEvent(BoardPosition.OFF_BOARD));
             }
             else if (selectable && !placementRank.Equals(UnitRank.Unknown))
@@ -96,9 +116,9 @@ public class SelectionManager : View, ISelectionManager
             }
             else if (selectable && placementRank.Equals(UnitRank.Unknown))
             {
-                MoveHighlight(tileVector);
                 if (piece)
                 {
+                    MoveHighlight(tileVector);
                     EventManager.Raise(new UnitSelectedEvent(unit));
                 }
                 else
@@ -113,22 +133,30 @@ public class SelectionManager : View, ISelectionManager
                 previous = position;
             }
         }
+        else if (Input.GetMouseButtonDown(1))
+        {
+            //Remove existing piece
+            if(piece)
+            {
+                UnitManager.RemovePiece(position);
+            }
+        }
     }
 
     private void MoveHighlight(Vector3 position)
     {
         Vector3 vec = position;
-        vec.z = -3;
-        HighlightCube.transform.position = vec;
-        HighlightCube.SetActive(true);
+        vec.z = GOLayer.HIGHLIGHT_LAYER;
+        highlightCube.transform.position = vec;
+        highlightCube.SetActive(true);
     }
 
     private void MoveHover(Vector3 position)
     {
         Vector3 vec = position;
-        vec.z = -4;
-        HoverCube.transform.position = vec;
-        HoverCube.SetActive(true);
+        vec.z = GOLayer.HOVER_LAYER;
+        hoverCube.transform.position = vec;
+        hoverCube.SetActive(true);
     }
 
     private void HandleUnitPlacementSelected(UnitPlacementSelectedEvent e)

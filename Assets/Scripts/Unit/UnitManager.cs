@@ -69,7 +69,7 @@ public class UnitManager : View, IUnitManager
                     plane.name = UnitUtilities.ReadableRank(rank);
                     plane.layer = LayerMask.NameToLayer("Pieces");
                     Vector3 planePos = BoardManager.GetTransformForPosition(position).position;
-                    planePos.z = -2;
+                    planePos.z = GOLayer.UNIT_LAYER;
                     plane.transform.position = planePos;
                     Renderer r = plane.GetComponent<Renderer>();
                     r.material = MaterialManager.GetRankMaterial(rank);
@@ -104,11 +104,9 @@ public class UnitManager : View, IUnitManager
     public void RemovePiece(BoardPosition position)
     {
         UnitPiece piece;
-        Debug.Log("attempting to get unit already at position " + position.ToString());
         if (pieces.TryGetValue(position, out piece))
         {
             bool result = pieces.Remove(position);
-            Debug.Log("removed " + UnitUtilities.ReadableRank(piece.Rank) + ": " + result);
             if (GameManager.CurrentMode == GameMode.PlayerOneSetup)
             {
                 playerOnePlacementUnits[piece.Rank] += 1;
@@ -132,6 +130,22 @@ public class UnitManager : View, IUnitManager
             piece = UnitPiece.UNKNOWN;
         }
         return piece;
+    }
+
+    public BoardPosition GetPositionForUnitPiece(UnitPiece piece)
+    {
+        BoardPosition position = BoardPosition.OFF_BOARD;
+
+        foreach(KeyValuePair<BoardPosition, UnitPiece> pair in pieces)
+        {
+            if(pair.Value.Equals(piece))
+            {
+                position = pair.Key;
+                break;
+            }
+        }
+
+        return position;
     }
 
     public int GetPlacementAmountForUnit(UnitRank rank)

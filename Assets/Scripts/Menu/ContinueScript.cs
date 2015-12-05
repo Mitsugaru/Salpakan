@@ -51,6 +51,20 @@ public class ContinueScript : MonoBehaviour
                     }
                     break;
                 }
+            case GameMode.PlayerOne:
+                {
+                    //TODO verify that they've completed their turn
+                    //TODO check win condition
+                    GameManager.ChangeMode(GameMode.PlayerTwo);
+                    break;
+                }
+            case GameMode.PlayerTwo:
+                {
+                    //TODO verify that they've completed their turn
+                    //TODO check win condition
+                    GameManager.ChangeMode(GameMode.PlayerOne);
+                    break;
+                }
             default:
                 {
                     break;

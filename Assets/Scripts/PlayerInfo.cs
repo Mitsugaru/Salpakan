@@ -1,5 +1,5 @@
 ﻿using UnityEngine;
-using System.Collections;
+using System.Collections.Generic;
 
 public class PlayerInfo {
 
@@ -18,8 +18,18 @@ public class PlayerInfo {
         set;
     }
 
+    private HashSet<UnitPiece> pieces = new HashSet<UnitPiece>();
+    public ICollection<UnitPiece> Pieces
+    {
+        get
+        {
+            return pieces;
+        }
+    }
+
     public PlayerInfo(string name)
     {
         this.name = name;
     }
+    
 }

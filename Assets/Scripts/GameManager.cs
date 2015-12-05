@@ -37,8 +37,9 @@ public class GameManager : View, IGameManager
 
     public GameObject PlayerParent;
 
-	// Use this for initialization
-	protected override void Start () {
+    // Use this for initialization
+    protected override void Start()
+    {
         base.Start();
 
         playerOne = new PlayerInfo("Player One");
@@ -55,8 +56,10 @@ public class GameManager : View, IGameManager
         playerTwo.Holder = holderTwo;
 
         EventManager.AddListener<BoardPositionSelectedEvent>(HandleBoardPositionSelection);
+        EventManager.AddListener<UnitPlacedEvent>(HandleUnitPlaced);
+        EventManager.AddListener<UnitRemovedEvent>(HandleUnitRemoved);
         EventManager.AddListener<UnitSelectedEvent>(HandleUnitSelection);
-	}
+    }
 
     public void ChangeMode(GameMode mode)
     {
@@ -73,5 +76,29 @@ public class GameManager : View, IGameManager
     private void HandleUnitSelection(UnitSelectedEvent e)
     {
         //Debug.Log("Selected: " + e.Unit.Rank);
+    }
+
+    private void HandleUnitPlaced(UnitPlacedEvent e)
+    {
+        if (CurrentMode.Equals(GameMode.PlayerOne) || CurrentMode.Equals(GameMode.PlayerOneSetup))
+        {
+            PlayerOne.Pieces.Add(e.Unit);
+        }
+        else if (CurrentMode.Equals(GameMode.PlayerTwo) || CurrentMode.Equals(GameMode.PlayerTwoSetup))
+        {
+            PlayerTwo.Pieces.Add(e.Unit);
+        }
+    }
+
+    private void HandleUnitRemoved(UnitRemovedEvent e)
+    {
+        if (CurrentMode.Equals(GameMode.PlayerOne) || CurrentMode.Equals(GameMode.PlayerOneSetup))
+        {
+            PlayerOne.Pieces.Remove(e.Unit);
+        }
+        else if (CurrentMode.Equals(GameMode.PlayerTwo) || CurrentMode.Equals(GameMode.PlayerTwoSetup))
+        {
+            PlayerTwo.Pieces.Remove(e.Unit);
+        }
     }
 }
