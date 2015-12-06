@@ -39,6 +39,43 @@ public class CoverManager : View, ICoverManager
         EventManager.AddListener<UnitBattleResultEvent>(HandleUnitBattleResult);
     }
 
+    public void ClearMask()
+    {
+        coverBoardPositions.Clear();
+        foreach (GameObject cover in covers)
+        {
+            cover.SetActive(false);
+        }
+    }
+
+    public void MaskPlayer(PlayerInfo player)
+    {
+        UnitPiece[] pieces = new UnitPiece[player.Pieces.Count];
+        player.Pieces.CopyTo(pieces, 0);
+        for (int i = 0; i < pieces.Length; i++)
+        {
+            BoardPosition boardPosition = UnitManager.GetPositionForUnitPiece(pieces[i]);
+            Transform transform = BoardManager.GetTransformForPosition(boardPosition);
+            Vector3 coverPosition = transform.position;
+            coverPosition.z = GOLayer.COVER_LAYER;
+            GameObject cover = covers[i];
+            if (cover.activeInHierarchy)
+            {
+                for (int j = i + 1; j < covers.Count; j++)
+                {
+                    cover = covers[j];
+                    if (!cover.activeInHierarchy)
+                    {
+                        break;
+                    }
+                }
+            }
+            cover.transform.position = coverPosition;
+            cover.SetActive(true);
+            coverBoardPositions.Add(boardPosition, cover);
+        }
+    }
+
     private void HandleGameModeChanged(GameModeChangedEvent e)
     {
         ClearMask();
@@ -67,43 +104,6 @@ public class CoverManager : View, ICoverManager
             ClearMask();
             MaskPlayer(GameManager.PlayerOne);
             MaskPlayer(GameManager.PlayerTwo);
-        }
-    }
-
-    private void ClearMask()
-    {
-        coverBoardPositions.Clear();
-        foreach (GameObject cover in covers)
-        {
-            cover.SetActive(false);
-        }
-    }
-
-    private void MaskPlayer(PlayerInfo player)
-    {
-        UnitPiece[] pieces = new UnitPiece[player.Pieces.Count];
-        player.Pieces.CopyTo(pieces, 0);
-        for (int i = 0; i < pieces.Length; i++)
-        {
-            BoardPosition boardPosition = UnitManager.GetPositionForUnitPiece(pieces[i]);
-            Transform transform = BoardManager.GetTransformForPosition(boardPosition);
-            Vector3 coverPosition = transform.position;
-            coverPosition.z = GOLayer.COVER_LAYER;
-            GameObject cover = covers[i];
-            if (cover.activeInHierarchy)
-            {
-                for (int j = i + 1; j < covers.Count; j++)
-                {
-                    cover = covers[j];
-                    if (!cover.activeInHierarchy)
-                    {
-                        break;
-                    }
-                }
-            }
-            cover.transform.position = coverPosition;
-            cover.SetActive(true);
-            coverBoardPositions.Add(boardPosition, cover);
         }
     }
 

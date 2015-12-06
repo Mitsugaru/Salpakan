@@ -12,6 +12,12 @@ public class ContinueScript : MonoBehaviour
     [Inject]
     public IUnitManager UnitManager { get; set; }
 
+    [Inject]
+    public ICoverManager CoverManager { get; set; }
+
+    [Inject]
+    public IWinManager WinManager { get; set; }
+
     public GameObject TransitionPanel;
 
     public Text TransitionText;
@@ -62,27 +68,51 @@ public class ContinueScript : MonoBehaviour
                 }
             case GameMode.PlayerOne:
                 {
-                    //TODO verify that they've completed their turn
-                    //TODO check win condition
-                    previous = GameMode.PlayerOne;
-                    TransitionPanel.SetActive(true);
-                    TransitionText.text = GameManager.PlayerTwo.Name + "'s" + System.Environment.NewLine + "turn";
-                    GameManager.ChangeMode(GameMode.PlayerTransition);
+                    // verify that they've completed their turn
+                    if (GameManager.TurnComplete)
+                    {
+                        // check win condition
+                        if (WinManager.WinOccurred)
+                        {
+                            HandleWin();
+                        }
+                        else
+                        {
+                            previous = GameMode.PlayerOne;
+                            TransitionPanel.SetActive(true);
+                            TransitionText.text = GameManager.PlayerTwo.Name + "'s" + System.Environment.NewLine + "turn";
+                            GameManager.ChangeMode(GameMode.PlayerTransition);
+                        }
+                    }
                     break;
                 }
             case GameMode.PlayerTwo:
                 {
-                    //TODO verify that they've completed their turn
-                    //TODO check win condition
-                    previous = GameMode.PlayerTwo;
-                    TransitionPanel.SetActive(true);
-                    TransitionText.text = GameManager.PlayerOne.Name + "'s" + System.Environment.NewLine + "turn";
-                    GameManager.ChangeMode(GameMode.PlayerTransition);
+                    // verify that they've completed their turn
+                    if (GameManager.TurnComplete)
+                    {
+                        // check win condition
+                        if (WinManager.WinOccurred)
+                        {
+                            HandleWin();
+                        }
+                        else
+                        {
+                            previous = GameMode.PlayerTwo;
+                            TransitionPanel.SetActive(true);
+                            TransitionText.text = GameManager.PlayerOne.Name + "'s" + System.Environment.NewLine + "turn";
+                            GameManager.ChangeMode(GameMode.PlayerTransition);
+                        }
+                    }
                     break;
                 }
             case GameMode.PlayerTransition:
                 {
-                    if (previous.Equals(GameMode.PlayerOne))
+                    if (WinManager.WinOccurred)
+                    {
+                        HandleWin();
+                    }
+                    else if (previous.Equals(GameMode.PlayerOne))
                     {
                         GameManager.ChangeMode(GameMode.PlayerTwo);
                     }
@@ -98,5 +128,19 @@ public class ContinueScript : MonoBehaviour
                     break;
                 }
         }
+    }
+
+    private void HandleWin()
+    {
+        TransitionPanel.SetActive(true);
+        if (WinManager.PlayerWon.Equals(PlayerInfo.UNKNOWN))
+        {
+            TransitionText.text = "DRAW";
+        }
+        else
+        {
+            TransitionText.text = WinManager.PlayerWon.Name + System.Environment.NewLine + "won!";
+        }
+        CoverManager.ClearMask();
     }
 }

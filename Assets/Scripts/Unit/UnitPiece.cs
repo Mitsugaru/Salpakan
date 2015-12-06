@@ -14,10 +14,17 @@ public class UnitPiece
         }
     }
 
+    private PlayerInfo owner = PlayerInfo.UNKNOWN;
     public PlayerInfo Owner
     {
-        get;
-        set;
+        get
+        {
+            return owner;
+        }
+        set
+        {
+            owner = value;
+        }
     }
 
     private GameObject piece;

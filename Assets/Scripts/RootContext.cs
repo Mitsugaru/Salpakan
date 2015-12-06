@@ -50,6 +50,9 @@ public class RootContext : MVCSContext, IRootContext
         CoverManager coverManager = managers.GetComponent<CoverManager>();
         injectionBinder.Bind<ICoverManager>().ToValue(coverManager).ToSingleton();
 
+        IWinManager winManager = managers.GetComponent<WinManager>();
+        injectionBinder.Bind<IWinManager>().ToValue(winManager).ToSingleton();
+
         UnitMenuManager unitMenuManager = ui.GetComponent<UnitMenuManager>();
         Inject(unitMenuManager);
 

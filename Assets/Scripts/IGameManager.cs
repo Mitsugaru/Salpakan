@@ -8,6 +8,8 @@ public interface IGameManager {
 
     PlayerInfo PlayerTwo { get; }
 
+    bool TurnComplete { get; }
+
     void ChangeMode(GameMode mode);
 
     void HandleBattle(UnitPiece attacker, BoardPosition attackerPosition, UnitPiece defender, BoardPosition defenderPosition);

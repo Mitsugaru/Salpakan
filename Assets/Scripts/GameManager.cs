@@ -36,6 +36,15 @@ public class GameManager : View, IGameManager
         }
     }
 
+    private bool turnComplete = false;
+    public bool TurnComplete
+    {
+        get
+        {
+            return turnComplete;
+        }
+    }
+
     public GameObject PlayerParent;
 
     // Use this for initialization
@@ -58,6 +67,7 @@ public class GameManager : View, IGameManager
 
         EventManager.AddListener<BoardPositionSelectedEvent>(HandleBoardPositionSelection);
         EventManager.AddListener<UnitPlacedEvent>(HandleUnitPlaced);
+        EventManager.AddListener<UnitMovedEvent>(HandleUnitMoved);
         EventManager.AddListener<UnitRemovedEvent>(HandleUnitRemoved);
         EventManager.AddListener<UnitSelectedEvent>(HandleUnitSelection);
     }
@@ -66,6 +76,10 @@ public class GameManager : View, IGameManager
     {
         GameMode previous = current;
         current = mode;
+        if(mode.Equals(GameMode.PlayerTransition))
+        {
+            turnComplete = false;
+        }
         EventManager.Raise(new GameModeChangedEvent(previous, current));
     }
 
@@ -89,6 +103,11 @@ public class GameManager : View, IGameManager
         {
             PlayerTwo.Pieces.Add(e.Unit);
         }
+    }
+
+    private void HandleUnitMoved(UnitMovedEvent e)
+    {
+        turnComplete = true;
     }
 
     private void HandleUnitRemoved(UnitRemovedEvent e)
@@ -134,5 +153,6 @@ public class GameManager : View, IGameManager
                 }
         }
         EventManager.Raise(new UnitBattleResultEvent(attacker, defender, attackerPosition, defenderPosition, result));
+        turnComplete = true;
     }
 }

@@ -3,6 +3,8 @@ using System.Collections.Generic;
 
 public class PlayerInfo {
 
+    public static readonly PlayerInfo UNKNOWN = new PlayerInfo("UNKNOWN");
+
     private string name;
     public string Name
     {
